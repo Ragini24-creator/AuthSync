@@ -12,10 +12,12 @@ const { v4: uuidv4 } = require('uuid')
 const DB_URL = `mongodb+srv://Ragini:${PASSWORD}@cluster0.om43n.mongodb.net/AUTHSYNC?retryWrites=true&w=majority&appName=Cluster0`;
 const app = express();
 
+
+const QR = require('qrcode')
 // importing  userModel
 const Users = require("./datastore/models/userSchema.js");
 const Devices = require("./datastore/models/deviceSchema.js")
-
+const transferSession = require("./datastore/models/transferSession.js")
 
 app.use(express.json());
 
@@ -166,27 +168,93 @@ const setCookie = function (res, name, token) {
 }
 
 
+function jwtAuthenticationMiddleware(req, res, next) {
+  const token = req.headers['authorization']?.split(' ')[1];
+
+  if (!token) {
+    res.sendStatus(403) // forbidden
+
+  }
 
 
-//, device_id
+  try {
+    const decoded = jwt.verify(token, SecretKey)
+    req.decodedValue = decoded;
+    next();
+  } catch (error) {
+    return res.send("Invalid or expired token ")
+  }
+}
 
-// {
-//   email: abc@gamil.com
-//   password: 12345678
-// }
+const checkExistingSessionToken = async function (decodedUnique) {
+  const transferSessionObject = await transferSession.findOne({ unique: decodedUnique })
+  if (transferSessionObject) {
+    console.log("Existing session token found:", transferSessionObject);
 
-// {
-//   "email": "pqr123@gmail.com",
-//   "password": "123sgud2"
-// }
+    // check if session token is valid (not expired , not used)
+    const isExpired = Date.now() > Date.now(transferSessionObject.expirationTime).getTime()
+    const isUsed = transferSessionObject.flag === 'used';
 
-// {
-//   "email": "aarav123@gmail.com",
-//   "password": "123aljdken"
-// }
+    if (!isExpired && !isUsed) {
+      console.log("Reusing existing session token....")
+      return {
+        status: true,
+        sessionToken: transferSessionObject.sessionToken,
+      };
+    }
+    console.log("Existing token is invalid.");
+    return { status: false };
+
+  }
+  return { status: false };
+}
+
+app.get("/authSync/QR", jwtAuthenticationMiddleware, async (req, res) => {
+  try {
+
+    const { unique: decodedUnique, } = req.decodedValue
+
+    if (!decodedUnique) {
+      return res.status(400).send("Invalid or missing 'unique' value in JWT");
+    }
+
+    console.log("Decoded unique identifier:", decodedUnique);
+
+    // checks if session token already exists under the decoded uuid 
+    const existingToken = await checkExistingSessionToken(decodedUnique);
+
+    if (existingToken.status) {
+      console.log("Using existing session token")
+    }
+
+    // If no valid existing token, generate a new one
+    const newSessionToken = await generateNewSessionToken(decodedUnique);
+
+    res.status(200).json({
+      message: "New session token generated",
+      sessionToken: newSessionToken
+    })
+  }
+  catch (error) {
+    res.send("Error generating session Token")
+  }
+})
 
 
-// {
-//   "email": "reyansh123@gmail.com",
-//   "password": "hswiqishhha"
-// }
+async function generateNewSessionToken(unique) {
+  try {
+    const newSessionToken = uuidv4();
+    const expirationTime = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+
+    await transferSession.create({
+      unique, newSessionToken, expirationTime
+    })
+
+    console.log("New session token generated:", newSessionToken);
+    return newSessionToken;
+  }
+  catch (error) {
+    console.log(error)
+  }
+}
+

@@ -1,13 +1,15 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 dotenv.config({ path: "./config.env" });
+
+const { generateJWT, setCookie, jwtAuthenticationMiddleware } = require('./utils/jwt.js')
+
+
 const connectDB = require('./datastore/connection.js');
 const mongoose = require("mongoose");
 const PASSWORD = encodeURIComponent(process.env.DATABASE_PASSWORD);
-const SecretKey = process.env.JWT_SECRET_KEY
-const jwtExpiresIn = process.env.EXPIRES_IN
+
+const qrcode = require('qrcode');
 const { v4: uuidv4 } = require('uuid')
 const DB_URL = `mongodb+srv://Ragini:${PASSWORD}@cluster0.om43n.mongodb.net/AUTHSYNC?retryWrites=true&w=majority&appName=Cluster0`;
 const app = express();
@@ -15,8 +17,7 @@ const app = express();
 
 const QR = require('qrcode')
 // importing  userModel
-const Users = require("./datastore/models/userSchema.js");
-const Devices = require("./datastore/models/deviceSchema.js")
+
 const transferSession = require("./datastore/models/transferSession.js")
 
 app.use(express.json());
@@ -32,159 +33,6 @@ mongoose.connect(DB_URL).then((con) => {
   console.log("DB connection successful!");
 });
 
-const validateUserInput = (req, res, next) => {
-
-  const { email, password } = req.body
-  if (!email) {
-    return res.status(400).json({ error: "Email is required" });
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: "Email format is invalid" });
-  }
-
-  if (!password || password.length < 8) {
-    return res.status(400).send("password must be of atleast  8 characters ");
-  }
-
-  next();
-};
-
-// Register endpoint
-app.post("/authSync/register", validateUserInput, async (req, res) => {
-
-  try {
-    const { email, password } = req.body;
-    const hashedPassword = await passwordHashing(password);
-    const unique = uuidv4();
-    const deviceId = uuidv4();
-    const user = await Users.findOne({ email: email });
-    const device = await Devices.findOne({ deviceId })
-    if (!user) {
-      const newUser = await Users.create({
-        unique, email, password: hashedPassword, activeDevices: [deviceId]
-      })
-
-      if (!device) {
-        await Devices.create({
-          userid: unique,
-          deviceid: deviceId
-        })
-      }
-
-      res.status(201).json({
-        status: "user registered successfully",
-        user: newUser
-      });
-    }
-    else {
-      throw new Error("User already exists")
-    }
-  }
-  catch (error) {
-    console.error(error)
-    if (error instanceof Error) {
-      res.status(400).send({ status: "Failed to create user", message: error.message })
-    }
-  }
-
-});
-
-// login endpoint
-app.post("/authSync/login", validateUserInput, async (req, res) => {
-
-  const { email, password } = req.body;
-
-  //  check it in database
-  const user = await Users.findOne({ email: email });
-  console.log(user)
-  if (!user) {
-    return res.status(400).send(
-      "User not found"
-    )
-  }
-
-  // find the device and update its "status to active"
-  const deviceId = user.activeDevices[0];
-  await Devices.findOneAndUpdate({ deviceid: deviceId, status: "active" });
-
-
-  const storedHashedPassword = user.password
-
-  //  convert password to hash and verify its existence in database
-  const isPasswordValid = await comparePassword(password, storedHashedPassword);
-  if (isPasswordValid) {
-    const ssoToken = (generateJWT(user.unique, user.activeDevices[0]))
-    console.log(ssoToken)
-
-    setCookie(res, "authToken", ssoToken);
-
-    res.status(200).send({
-      status: "success",
-      message: "Login successful, cookie has been set"
-    })
-  } else {
-    res.status(400).json({
-      message: "Invalid credentials",
-    });
-  }
-});
-
-const passwordHashing = async function (password) {
-  try {
-    const saltRounds = 11;
-    hashedPassword = await bcrypt.hash(password, saltRounds);
-    return hashedPassword;
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-const comparePassword = async function (password, hashedPassword) {
-  try {
-    const isValid = await bcrypt.compare(password, hashedPassword);
-    return isValid;
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-
-// const payload:{uuid, deviceid}
-const generateJWT = function (unique, deviceId) {
-  const token = jwt.sign({ unique, deviceId }, SecretKey, { expiresIn: jwtExpiresIn })
-  return token;
-}
-
-//set cookie
-const setCookie = function (res, name, token) {
-  res.cookie(name, token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    maxAge: 60 * 60 * 1000, // 1 hour
-  }
-  )
-}
-
-
-function jwtAuthenticationMiddleware(req, res, next) {
-  const token = req.headers['authorization']?.split(' ')[1];
-
-  if (!token) {
-    res.sendStatus(403) // forbidden
-
-  }
-
-
-  try {
-    const decoded = jwt.verify(token, SecretKey)
-    req.decodedValue = decoded;
-    next();
-  } catch (error) {
-    return res.send("Invalid or expired token ")
-  }
-}
 
 const checkExistingSessionToken = async function (decodedUnique) {
   const transferSessionObject = await transferSession.findOne({ unique: decodedUnique })
@@ -232,7 +80,8 @@ app.get("/authSync/QR", jwtAuthenticationMiddleware, async (req, res) => {
 
     res.status(200).json({
       message: "New session token generated",
-      sessionToken: newSessionToken
+      sessionToken: newSessionToken,
+
     })
   }
   catch (error) {
@@ -251,10 +100,63 @@ async function generateNewSessionToken(unique) {
     })
 
     console.log("New session token generated:", newSessionToken);
-    return newSessionToken;
+
+    const qrCodeDataUrl = await generateQR(unique, newSessionToken, expirationTime)
+    console.log(qrCodeDataUrl)
+    // Call the function to save the QR code as a file
+    await saveQRCodeAsFile(qrCodeDataUrl, 'qr_code.png');
+    return newSessionToken
   }
   catch (error) {
     console.log(error)
   }
 }
+
+const generateQR = async function (uuid, sessionToken, expirationTime) {
+  try {
+    const data = {
+      uuid: uuid,
+      token: sessionToken,
+      expirationTime: expirationTime,
+    }
+
+    const jsonData = JSON.stringify(data);
+
+
+    const qrCodeDataUrl = await qrcode.toDataURL(jsonData, {
+      errorCorrectionLevel: 'H', // High error correction level
+      width: 300,                 // Adjust the width
+      margin: 2                   // Adjust the margin size
+    });
+
+    return qrCodeDataUrl;
+
+
+
+
+  }
+  catch (error) {
+    console.log(error)
+  }
+}
+
+
+// Save QR Code as file
+const saveQRCodeAsFile = async function (qrCodeDataUrl, filename) {
+  try {
+    // Remove the data URL prefix (data:image/png;base64,)
+    const base64Data = qrCodeDataUrl.replace(/^data:image\/png;base64,/, '');
+
+    // Write the base64 data to a file
+    fs.writeFile(filename, base64Data, 'base64', (err) => {
+      if (err) {
+        console.error('Error saving QR code:', err);
+      } else {
+        console.log('QR code saved as', filename);
+      }
+    });
+  } catch (error) {
+    console.log('Error saving QR code as file:', error);
+  }
+};
 

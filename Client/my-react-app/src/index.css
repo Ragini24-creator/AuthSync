@@ -1,0 +1,83 @@
+*{
+   margin: 0;
+   padding: 0;
+}
+
+html,body,#root{
+  height:100%;
+  background-color: #212529;
+}
+
+.container{
+  height:100vh;
+  width:100vw;
+  display:flex;
+  align-items:center;
+  justify-content: center;
+}
+
+.login-form-div{
+  padding:50px;
+  border-radius: 5%;
+  background-color:#495057;
+}
+
+.project-title{
+color:#fff;
+margin-bottom:20px;
+text-align: center;
+
+}
+.login-form{
+padding:30px;
+background-color:#495057;
+}
+
+.p-username{
+color:#fff;
+margin-bottom:10px;
+}
+
+.user-name{
+  width:210px;
+  padding:10px 10px;
+  background-color:#495057;
+  margin-bottom:20px;
+  border-radius:5px;
+  box-shadow:0px 0px 20px 10px rgba(0,0,0,0.3);
+  color:#fff;
+}
+
+.p-password{
+  color:#fff;
+  margin-bottom:10px;
+  }
+  
+
+.password{
+  width: 210px;
+  padding:10px 10px;
+  background-color:#495057;
+  margin-bottom:20px;
+  border-radius:5px;
+  box-shadow:0px 0px 20px 10px rgba(0,0,0,0.3);
+  color:#fff;
+}
+
+.btn{
+  padding:10px 15px;
+  width:230px;
+  display:block;
+  margin-bottom:20px;
+  background-color:#37b24d;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+  color:white;
+  transition:background-color 0.3s ease,
+}
+
+.btn:hover{
+  background-color:#2b8a3e;
+}
+

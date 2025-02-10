@@ -4,8 +4,14 @@ const { validateUserInput } = require('../middleware/validation.js')
 
 const router = express.Router();
 
-router.post('/authSync/register', validateUserInput, registerUser)
+try {
+    router.post('/register', validateUserInput, registerUser)
 
-router.post('authSync/login', validateUserInput, loginUser)
+    router.post('/login', validateUserInput, loginUser)
+} catch (error) {
+    console.log(error)
+    process.exit(0)
+}
+
 
 module.exports = router;

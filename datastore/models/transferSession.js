@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 const transferSessionSchema = new mongoose.Schema({
     unique: {
-        type: String,
-
+        type: String, // Referencing the ObjectId type
+        ref: "User", // The name of the users schema model
         required: true
     },
     sessionToken: {

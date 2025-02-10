@@ -2,8 +2,11 @@
   "name": "my-react-app",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:9000",
   "dependencies": {
     "cra-template": "1.2.0",
+    "html5-qrcode": "^2.3.8",
+    "ngrok": "^5.0.0-beta.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-scripts": "5.0.1"

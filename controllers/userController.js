@@ -1,10 +1,12 @@
-const Users = require("./datastore/models/userSchema.js");
-const Devices = require("./datastore/models/deviceSchema.js")
+const Users = require("../datastore/models/userSchema.js");
+const Devices = require("../datastore/models/deviceSchema.js")
 const { v4: uuidv4 } = require('uuid')
+const { getQR } = require('./sessionController.js')
 const {
     passwordHashing, comparePassword } = require('../utils/passwordHashing.js')
 
-const { generateJWT, setCookie, jwtAuthenticationMiddleware } = require('../utils/jwt.js')
+const { generateJWT, setCookie } = require('../utils/jwt.js');
+const generateQR = require("../utils/QRUtils.js");
 
 
 // Register endpoint
@@ -78,9 +80,13 @@ const loginUser = async (req, res) => {
 
         setCookie(res, "authToken", ssoToken);
 
+        const qrUrl = await getQR(ssoToken)
+
         res.status(200).send({
             status: "success",
-            message: "Login successful, cookie has been set"
+            message: "Login successful, cookie has been set",
+            email,
+            qrUrl
         })
     } else {
         res.status(400).json({

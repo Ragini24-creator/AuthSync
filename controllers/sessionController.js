@@ -1,20 +1,30 @@
 const express = require('express');
 const app = express();
 const bodyParser = require("body-parser")
+const Devices = require('../datastore/models/deviceSchema.js')
 const Users = require("../datastore/models/userSchema.js");
 const transferSession = require('../datastore/models/transferSession.js')
 const generateQR = require('../utils/QRUtils.js')
 const { checkExistingSessionToken, generateNewSessionToken } = require('../utils/sessionUtils.js')
+const { generateJWT, setCookie } = require('../utils/jwt.js')
+const SecretKey = process.env.JWT_SECRET_KEY
+const jwt = require('jsonwebtoken');
+const uuid = require('uuid')
 
 app.use(express.json())
 
-const getQR = async (req, res) => {
+const getQR = async (ssoToken) => {
     try {
+        if (!ssoToken) {
+            throw new Error('ssoToken is mandatory!')
+        }
 
-        const { unique: decodedUnique, } = req.decodedValue
+        const decoded = jwt.verify(ssoToken, SecretKey)
+        const { unique: decodedUnique, } = decoded;
 
         if (!decodedUnique) {
-            return res.status(400).send("Invalid or missing 'unique' value in JWT");
+            throw new Error('Invalid or missing Unique field in ssoToken')
+            // return res.status(400).send("Invalid or missing 'unique' value in JWT");
         }
 
         console.log("Decoded unique identifier:", decodedUnique);
@@ -22,61 +32,84 @@ const getQR = async (req, res) => {
         // Check if the user exists in the User schema
         const user = await Users.findOne({ unique: decodedUnique });
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            throw new Error('user not found');
+            // return res.status(404).json({ message: "User not found" });
         }
 
         // checks if session token already exists under the decoded uuid 
-        const existingToken = await checkExistingSessionToken(decodedUnique);
+        // const existingToken = await checkExistingSessionToken(decodedUnique);
 
-        if (existingToken.status) {
-            // If an existing session token is found, send it to the user
-            console.log("Using existing session token");
-            const qrURL = await generateQR(existingToken)
-            return res.status(200).json({
-                message: "QR generated",
-                qr: qrURL
-            })
-        }
+        // if (existingToken.status) {
+        // If an existing session token is found, send it to the user
+        //     console.log("Using existing session token");
+        //     const qrURL = await generateQR(existingToken)
+        //     return res.status(200).json({
+        //         message: "QR generated",
+        //         qr: qrURL
+        //     })
+        // }
 
         // If no valid existing token, generate a new one
-        const newSessionToken = await generateNewSessionToken(decodedUnique);
+        //const newSessionToken = await generateNewSessionToken(decodedUnique);
 
         // use the new session token to generate QR 
-        const qrURL = await generateQR(newSessionToken)
+        console.log(user.unique)
+        const qrURL = await generateQR(user.unique)
 
-
-        res.status(200).json({
-            message: "New session token generated",
-            sessionToken: newSessionToken,
-            qr: qrURL
-        })
+        return qrURL
+        // console.log('qr generated', qrURL)
+        // res.status(200).json({
+        //     message: "New session token generated",
+        //     qr: qrURL
+        // })
     }
     catch (error) {
-        res.send(error)
+        console.log('from getQr', error)
+        // res.send(error)
     }
 }
 
 
 const validateQR = async (req, res) => {
-    console.log("request hit after QR scanning")
-    const extractedSessionToken = req.body;  // Access token and user from the body
+    try {
+        console.log("request hit after QR scanning", req.body)
+        const { qrData: unique } = req.body;  // Access token and user from the body
 
-    // Step 1: Check if session token exists
-    const session = await transferSession.findOne(extractedSessionToken); // Your DB query to check if token exists
-    if (!session) {
-        return res.status(400).send('Invalid session token');
+
+        // Step 1: Check if user exists
+        const user = await Users.findOne({ unique }); // Your DB query to check if token exists
+        if (!user) {
+            return res.status(400).send('Invalid session token');
+        }
+
+        const deviceID = uuid.v4();
+        await Users.findOneAndUpdate({ unique }, { $push: { activedevices: deviceID } })
+        await Devices.create({
+            userid: unique, deviceid: deviceID, status: "active"
+        })
+        // Step 2: Check if the session has expired
+        //const currentTime = new Date(); // Get current time
+
+        // if (session.expires_at <= currentTime) {
+        //     return res.status(400).send('Session expired');
+        // }
+        const ssoToken = generateJWT(unique, deviceID)
+
+        setCookie(res, "authToken", ssoToken)
+
+        // Step 3: Continue with the session transfer process (e.g., OTP, etc.)
+
+        const qrUrl = await getQR(ssoToken)
+
+        res.status(200).send({
+            status: "success",
+            message: "Login successful, cookie has been set",
+            email: user.email,
+            qrUrl
+        })
+    } catch (error) {
+        console.log("Error occured in validate QR function: ", error.message)
     }
-
-    // Step 2: Check if the session has expired
-    const currentTime = new Date(); // Get current time
-
-    if (session.expires_at <= currentTime) {
-        return res.status(400).send('Session expired');
-    }
-
-
-    // Step 3: Continue with the session transfer process (e.g., OTP, etc.)
-    res.send('Session is valid and ready for transfer');
 
 }
 

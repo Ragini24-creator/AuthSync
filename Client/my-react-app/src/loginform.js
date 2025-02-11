@@ -24,7 +24,7 @@ export default function LoginForm(props) {
         console.log(action, email, password)
 
         if (action) {
-            const response = await fetch(`http://localhost:9000/authSync/${action}`, {
+            const response = await fetch(`/authSync/${action}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"

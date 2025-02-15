@@ -5,7 +5,7 @@ const { getQR } = require('./sessionController.js')
 const {
     passwordHashing, comparePassword } = require('../utils/passwordHashing.js')
 
-const { generateJWT, setCookie } = require('../utils/jwt.js');
+const { generateJWT, setCookie, jwtAuthenticationMiddleware } = require('../utils/jwt.js');
 const generateQR = require("../utils/QRUtils.js");
 
 
@@ -86,7 +86,12 @@ const loginUser = async (req, res) => {
             status: "success",
             message: "Login successful, cookie has been set",
             email,
-            qrUrl
+            qrUrl,
+            userData: {
+                userName: email.split('@')[0],
+                email,
+                loggedInDevices: user.activeDevices.length
+            }
         })
     } else {
         res.status(400).json({
@@ -95,8 +100,77 @@ const loginUser = async (req, res) => {
     }
 };
 
+const validateUserSession = async (req, res) => {
+    const ssoToken = req.headers['cookie']?.split('=')[1];
+    console.log(req.headers)
+    if (!ssoToken) {
+        console.log("from validate user session: no token")
+        res.status(401).json({
+            status: "false",
+            message: "Unauthorized: ssoToken is missing or invalid"
+        })
+    }
+    else {
+        console.log("from validate user session ", ssoToken);
+        const { unique } = jwtAuthenticationMiddleware(ssoToken)
+
+
+        const user = await Users.findOne({ unique: unique });
+
+        res.status(200).send({
+            status: "success",
+            userData: {
+                userName: user.email.split('@')[0],
+                email: user.email,
+                loggedInDevices: user.activeDevices.length
+            }
+        })
+
+    }
+
+}
+
+const logoutUser = async (req, res) => {
+
+    try {
+        const ssoToken = req.headers['cookie']?.split('=')[1];
+
+        if (!ssoToken) {
+            console.log('logoutUser: No ssoToken')
+        }
+        else {
+            const { unique, deviceId } = jwtAuthenticationMiddleware(ssoToken)
+
+            await Users.findOneAndUpdate(
+                { unique },
+                { $pull: { activedevices: deviceId } },
+            );
+
+            res.clearCookie("authToken", {
+                httpOnly: true,
+                secure: true,
+                sameSite: "strict"
+            });
+
+            res.status(200).send({
+                status: "Success"
+            })
+        }
+    } catch (error) {
+        res.send({
+            status: "Failed",
+            error: error.message
+        })
+    }
+
+
+}
+
+
 
 module.exports = {
     registerUser,
     loginUser,
+    validateUserSession,
+    logoutUser
 }

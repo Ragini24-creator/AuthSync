@@ -8,7 +8,7 @@ const { jwtAuthenticationMiddleware } = require('../utils/jwt')
 
 const router = express.Router();
 
-router.get('/QR', jwtAuthenticationMiddleware, getQR)
+// router.get('/QR', jwtAuthenticationMiddleware, getQR)
 router.post('/validateQR', validateQR)
 
 module.exports = router;

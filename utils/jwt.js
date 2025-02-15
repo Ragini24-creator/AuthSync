@@ -25,21 +25,21 @@ const setCookie = function (res, name, token) {
 }
 
 
-function jwtAuthenticationMiddleware(req, res, next) {
-    const token = req.headers['authorization']?.split(' ')[1];
+function jwtAuthenticationMiddleware(ssoToken) {
+    // const token = req.headers['authorization']?.split(' ')[1];
 
-    if (!token) {
-        res.sendStatus(403) // forbidden
+    // if (!token) {
+    //     res.sendStatus(403) // forbidden
 
-    }
+    // }
 
 
     try {
-        const decoded = jwt.verify(token, SecretKey)
-        req.decodedValue = decoded;
-        next();
+        const decoded = jwt.verify(ssoToken, SecretKey)
+        // req.decodedValue = decoded;
+        return decoded
     } catch (error) {
-        return res.send("Invalid or expired token ")
+        console.log("jwtAuthenticationMiddleware: Invalid or expired token ")
     }
 }
 

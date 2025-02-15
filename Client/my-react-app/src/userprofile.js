@@ -1,20 +1,34 @@
 
 
-export default function UserProfile() {
+export default function UserProfile(props) {
+    const handleClick = async () => {
+        const response = await fetch(`/authSync/logout`, {
+            method: 'GET',
+            credentials: "include"
+        });
+
+        const logoutResponse = await response.json();
+        console.log(logoutResponse)
+        if (logoutResponse.status === 'Success') {
+            props.onSuccessfulLogout(false)
+        }
+    }
+
+
     return (
         <div className="userprofile-container">
             <div className="nav-div">
                 <img src='/userprofile.avif' width="100px" height="100px" />
                 <div className="user-name-email-div">
-                    <h2>Alexandra Johnson</h2>
-                    <p>alexandra.j@example.com</p>
+                    <h2>{props.data.userData.userName}</h2>
+                    <p>{props.data.userData.email}</p>
                 </div>
-                <button className="btn btn-logout">Logout</button>
+                <button className="btn btn-logout" onClick={handleClick}>Logout</button>
             </div>
             <div className="features-div">
                 <div className="active-session">
                     <h3>Active Sessions</h3>
-                    <p>Number of devices logged in : 3</p>
+                    <p>Number of devices logged in : {props.data.userData.loggedInDevices}</p>
                 </div>
                 <div className="emergency-lockout">
                     <h3>Emergency Lockout</h3>

@@ -104,7 +104,10 @@ const validateQR = async (req, res) => {
         res.status(200).send({
             status: "success",
             message: "Login successful, cookie has been set",
-            email: user.email,
+            userData: {
+                userName: user.email.split('@')[0],
+                email: user.email
+            },
             qrUrl
         })
     } catch (error) {

@@ -1,4 +1,5 @@
 
+import QRCode from "./QRcode"
 
 export default function UserProfile(props) {
     const handleClick = async () => {
@@ -36,9 +37,10 @@ export default function UserProfile(props) {
                     <button className="btn btn-emergency-lockout">Emergency Lockout </button>
                 </div>
                 <div className="generate-QR">
-                    <h3>Generate QR code</h3>
-                    <p>Generate a QR code to quickly log in from another device</p>
-                    <button className="btn btn-generate-QR">Generate QR</button>
+                    <h3 className="qr-title">Your QR Code </h3>
+                    {/* <p>Generate a QR code to quickly log in from another device</p> */}
+                    {/* <button className="btn btn-generate-QR">Generate QR</button> */}
+                    {props.data.qrUrl && <QRCode qrUrl={props.data.qrUrl} />}
                 </div>
             </div>
         </div>

@@ -7,7 +7,7 @@ const router = express.Router();
 try {
     router.get('/session/validate', validateUserSession)
     router.get('/logout', logoutUser)
-    router.post('/register', validateUserInput, registerUser)
+    router.post('/signup', validateUserInput, registerUser)
     router.post('/login', validateUserInput, loginUser)
 
 } catch (error) {

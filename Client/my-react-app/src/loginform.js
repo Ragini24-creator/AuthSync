@@ -50,7 +50,7 @@ export default function LoginForm(props) {
                 <p className="p-password" >Password</p>
                 <input type="password" name="password" className="password" value={formData.password} onChange={handleChange} />
                 <button name="login" className="btn btn-login" onClick={handleSubmission}>Login</button>
-                <button name="signup" className="btn btn-signup" onClick={handleSubmission}>Signup</button>
+                <button name="signup" className="btn btn-signup" onClick={handleSubmission}>signup</button>
             </form>
         </div>
     )

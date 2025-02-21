@@ -32,14 +32,15 @@ function jwtAuthenticationMiddleware(ssoToken) {
     //     res.sendStatus(403) // forbidden
 
     // }
-
+    console.log('sso token', ssoToken)
 
     try {
         const decoded = jwt.verify(ssoToken, SecretKey)
         // req.decodedValue = decoded;
         return decoded
     } catch (error) {
-        console.log("jwtAuthenticationMiddleware: Invalid or expired token ")
+        console.log("jwtAuthenticationMiddleware: Invalid or expired token ", error.message)
+
     }
 }
 

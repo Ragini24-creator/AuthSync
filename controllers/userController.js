@@ -21,7 +21,7 @@ const registerUser = async (req, res) => {
         const device = await Devices.findOne({ deviceId })
         if (!user) {
             const newUser = await Users.create({
-                unique, email, password: hashedPassword, activeDevices: [deviceId]
+                unique, email, password: hashedPassword, activeDevices: [deviceId], primaryDevice: deviceId
             })
 
             if (!device) {
@@ -65,9 +65,12 @@ const loginUser = async (req, res) => {
         )
     }
 
+
+
+
     // find the device and update its "status to active"
     const deviceId = user.activeDevices[0];
-    await Devices.findOneAndUpdate({ deviceid: deviceId, status: "active" });
+    await Devices.findOneAndUpdate({ deviceid: deviceId }, { $set: { status: "active" } });
 
 
     const storedHashedPassword = user.password
@@ -112,19 +115,29 @@ const validateUserSession = async (req, res) => {
     }
     else {
         console.log("from validate user session ", ssoToken);
-        const { unique } = jwtAuthenticationMiddleware(ssoToken)
+        const decoded = jwtAuthenticationMiddleware(ssoToken)
 
+        if (decoded) {
+            const { unique } = decoded;
+            const qrUrl = await getQR(ssoToken)
+            const user = await Users.findOne({ unique: unique });
 
-        const user = await Users.findOne({ unique: unique });
-
-        res.status(200).send({
-            status: "success",
-            userData: {
-                userName: user.email.split('@')[0],
-                email: user.email,
-                loggedInDevices: user.activeDevices.length
-            }
-        })
+            res.status(200).send({
+                status: "success",
+                qrUrl,
+                userData: {
+                    userName: user.email.split('@')[0],
+                    email: user.email,
+                    loggedInDevices: user.activeDevices.length
+                }
+            })
+        }
+        else {
+            res.status(401).send({
+                status: "failed",
+                message: "sso-token is invalid or expired!"
+            })
+        }
 
     }
 
@@ -133,28 +146,39 @@ const validateUserSession = async (req, res) => {
 const logoutUser = async (req, res) => {
 
     try {
-        const ssoToken = req.headers['cookie']?.split('=')[1];
+        // for normal request from browser
+        // const ssoToken = req.headers['cookie']?.split('=')[1];
+
+        // for request from ngrok - cookie contains - abuse_interstitial=97c9-103-87-29-162.ngrok-free.app; authToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWUiOiIwMjgxY2U4My0zM
+        const ssoToken = req.headers['cookie']?.split(';')[1].split('=')[1];
+
+        console.log('cookie from logout request', req.headers['cookie'], ssoToken)
 
         if (!ssoToken) {
             console.log('logoutUser: No ssoToken')
         }
         else {
-            const { unique, deviceId } = jwtAuthenticationMiddleware(ssoToken)
+            const decoded = jwtAuthenticationMiddleware(ssoToken)
 
-            await Users.findOneAndUpdate(
-                { unique },
-                { $pull: { activedevices: deviceId } },
-            );
+            if (decoded) {
+                const { unique, deviceId } = decoded;
 
-            res.clearCookie("authToken", {
-                httpOnly: true,
-                secure: true,
-                sameSite: "strict"
-            });
+                await Users.findOneAndUpdate(
+                    { unique },
+                    { $pull: { activedevices: deviceId } },
+                );
 
-            res.status(200).send({
-                status: "Success"
-            })
+                res.clearCookie("authToken", {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "strict"
+                });
+                console.log('logout invoked')
+                res.status(200).send({
+                    status: "Success"
+                })
+            }
+
         }
     } catch (error) {
         res.send({
@@ -166,7 +190,27 @@ const logoutUser = async (req, res) => {
 
 }
 
+// const emergencyLockout = async (req, res) => {
+//     const { userId, deviceId } = req.body;
+//     const user = await user.findById(userId);
 
+//     if (!user || user.primaryDevice !== deviceId) {
+//         return res.status(403).json({ message: "Unauthorized to trigger lockout" });
+//     }
+
+//     // Set global lockout flag
+//     user.lockout = true;
+
+//     // Set all non-primary devices to signedOut
+//     user.devices = user.devices.map(device => {
+//         if (device.deviceId !== user.primaryDevice) {
+//             return { ...device, status: "signedOut" };
+//         }
+//         return device; // Primary device stays active
+//     });
+
+//     await user.save();
+// };
 
 module.exports = {
     registerUser,

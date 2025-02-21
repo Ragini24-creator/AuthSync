@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         unique: true
     },
+    primaryDevice: { type: String, required: true },
     password: String,
     mobile: String,
     lockout: {

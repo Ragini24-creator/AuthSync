@@ -5,6 +5,10 @@ const cors = require('cors')
 const { generateJWT, setCookie, jwtAuthenticationMiddleware } = require('./utils/jwt.js')
 
 
+
+
+
+
 const connectDB = require('./datastore/connection.js');
 const mongoose = require("mongoose");
 const PASSWORD = encodeURIComponent(process.env.DATABASE_PASSWORD);
@@ -32,6 +36,9 @@ app.listen(9000, '0.0.0.0', () => {
   console.log(`server is running on ${9000}`);
 });
 
+
+
+
 mongoose.connect(DB_URL).then((con) => {
   console.log(con.connections);
   console.log("DB connection successful!");
@@ -40,5 +47,4 @@ mongoose.connect(DB_URL).then((con) => {
 
 app.use('/authSync', userRoutes);
 app.use('/authSync', sessionRoutes)
-
 

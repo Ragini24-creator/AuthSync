@@ -2,12 +2,11 @@ const Users = require("../datastore/models/userSchema.js");
 const Devices = require("../datastore/models/deviceSchema.js")
 const { v4: uuidv4 } = require('uuid')
 const { getQR } = require('./sessionController.js')
-const {
-    passwordHashing, comparePassword } = require('../utils/passwordHashing.js')
-
+const { passwordHashing, comparePassword } = require('../utils/passwordHashing.js')
 const { generateJWT, setCookie, jwtAuthenticationMiddleware } = require('../utils/jwt.js');
-const generateQR = require("../utils/QRUtils.js");
 
+
+let clients = {};
 
 // Register endpoint
 const registerUser = async (req, res) => {
@@ -32,7 +31,7 @@ const registerUser = async (req, res) => {
             }
 
             res.status(201).json({
-                status: "user registered successfully",
+                status: "Success",
                 user: newUser
             });
         }
@@ -53,7 +52,6 @@ const registerUser = async (req, res) => {
 
 // login endpoint
 const loginUser = async (req, res) => {
-
     const { email, password } = req.body;
 
     //  check it in database
@@ -86,7 +84,7 @@ const loginUser = async (req, res) => {
         const qrUrl = await getQR(ssoToken)
 
         res.status(200).send({
-            status: "success",
+            status: "Success",
             message: "Login successful, cookie has been set",
             email,
             qrUrl,
@@ -104,11 +102,30 @@ const loginUser = async (req, res) => {
 };
 
 const validateUserSession = async (req, res) => {
-    const ssoToken = req.headers['cookie']?.split('=')[1];
+    // const ssoToken = req.headers['cookie']?.split('=')[1];
+    console.log(req.headers['cookie'])
+    let ssoToken = undefined;
+
+    if (req.headers['cookie']?.split('=')[0] === 'abuse_interstitial' && req.headers['cookie']?.split('=').length === 2) {
+        return res.status(400)
+    }
+
+    if (req.headers['cookie']?.split('=')[1] === 'authToken') {
+        ssoToken = req.headers['cookie']?.split('=')[1] === 'authToken'
+    }
+
+    else if (req.headers['cookie']?.split(';')[1].split('=')[0] === 'authToken') {
+        ssoToken = req.headers['cookie']?.split(';')[1].split('=')[1];
+    }
+
+    if (!ssoToken) {
+        return res.status(401).send({ status: "Failed" })
+    }
+
     console.log(req.headers)
     if (!ssoToken) {
         console.log("from validate user session: no token")
-        res.status(401).json({
+        return res.status(401).json({
             status: "false",
             message: "Unauthorized: ssoToken is missing or invalid"
         })
@@ -118,11 +135,25 @@ const validateUserSession = async (req, res) => {
         const decoded = jwtAuthenticationMiddleware(ssoToken)
 
         if (decoded) {
-            const { unique } = decoded;
+            const { unique, deviceId } = decoded;
             const qrUrl = await getQR(ssoToken)
             const user = await Users.findOne({ unique: unique });
+            const device = await Devices.findOne({ userid: unique, deviceid: deviceId });
 
-            res.status(200).send({
+            if (device && device.status === 'signedout') {
+                res.clearCookie("authToken", {
+                    httpOnly: true,
+                    secure: true,
+                    sameSite: "strict"
+                });
+
+                return res.status(401).json({
+                    status: "Failed",
+                    message: "Invalid user Session"
+                })
+            }
+
+            return res.status(200).send({
                 status: "success",
                 qrUrl,
                 userData: {
@@ -133,7 +164,7 @@ const validateUserSession = async (req, res) => {
             })
         }
         else {
-            res.status(401).send({
+            return res.status(401).send({
                 status: "failed",
                 message: "sso-token is invalid or expired!"
             })
@@ -168,12 +199,18 @@ const logoutUser = async (req, res) => {
                     { $pull: { activedevices: deviceId } },
                 );
 
+                await Devices.updateOne(
+                    { userid: unique, deviceid: deviceId, status: 'active' },
+                    { $set: { status: 'signedout' } }
+                )
+
                 res.clearCookie("authToken", {
                     httpOnly: true,
                     secure: true,
                     sameSite: "strict"
                 });
                 console.log('logout invoked')
+                // sendEventToUser(userId)
                 res.status(200).send({
                     status: "Success"
                 })
@@ -190,31 +227,110 @@ const logoutUser = async (req, res) => {
 
 }
 
-// const emergencyLockout = async (req, res) => {
-//     const { userId, deviceId } = req.body;
-//     const user = await user.findById(userId);
+const emergencyLockout = async (req, res) => {
+    try {
+        const ssoToken = req.headers['cookie'].split(";")[1].split("=")[1]
+        // const ssoToken = req.headers['cookie']?.split('=')[1];
+        if (!ssoToken) {
+            console.log("from Emergency Lockout : No ssoToken ")
+        }
 
-//     if (!user || user.primaryDevice !== deviceId) {
-//         return res.status(403).json({ message: "Unauthorized to trigger lockout" });
+
+        else {
+            console.log("sso", ssoToken)
+            const decoded = jwtAuthenticationMiddleware(ssoToken)
+            if (decoded) {
+                const { unique, deviceId } = decoded
+
+                const user = await Users.findOne({ unique: unique });
+                if (!user || user.primaryDevice !== deviceId) {
+                    return res.status(403).json({ message: "Unauthorized to trigger lockout" });
+                }
+
+                await Devices.updateMany(
+                    { userid: user.unique, deviceid: { $ne: user.primaryDevice }, status: "active" },
+                    { $set: { status: "signedout" } }
+                );
+
+                const userId = user.email.split('@')[0];
+                sendEventToUser(userId)
+
+                return res.json({ message: "Emergency lockout successful" });
+
+            } else {
+                res.send(400)
+            }
+
+        }
+    }
+    catch (error) {
+        console.log('error occured in emergency lockout', error.message);
+    }
+
+
+};
+
+
+const manageSSEConnection = (req, res) => {
+    const userId = req.params.userId;
+    console.log('SSE request received', req.params.userId)
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    if (!clients[userId]) {
+        clients[userId] = [];
+    }
+    clients[userId].push(res);
+
+    console.log(`📡 User ${userId} connected for SSE`);
+
+    req.on("close", () => {
+        clients[userId] = clients[userId].filter(client => client !== res);
+        console.log(`❌ User ${userId} disconnected from SSE`);
+    });
+}
+
+// Function to send event to all devices of a user
+// function sendEventToUser(userId) {
+//     if (clients[userId]) {
+//         clients[userId].forEach(client => {
+//             client.write(`data: ${JSON.stringify({ action: "logout" })}\n\n`);
+//         });
 //     }
+//     console.log(`🚨 Logout event sent to user ${userId}`);
+// }
 
-//     // Set global lockout flag
-//     user.lockout = true;
+// function sendEventToUser(userId) {
 
-//     // Set all non-primary devices to signedOut
-//     user.devices = user.devices.map(device => {
-//         if (device.deviceId !== user.primaryDevice) {
-//             return { ...device, status: "signedOut" };
-//         }
-//         return device; // Primary device stays active
-//     });
+//     if (clients[userId]) {
+//         clients[userId].forEach(client => {
+//             const eventData = `data: ${JSON.stringify({ action: "logout" })}\n\n`;
+//             console.log(`📤 Sending SSE data: ${eventData}`);
+//             client.write(eventData);  // Send event properly
+//         });
+//     }
+// }
 
-//     await user.save();
-// };
+function sendEventToUser(userId) {
+    if (clients[userId]) {
+        clients[userId].forEach(client => {
+            const eventData = `data: ${JSON.stringify({ action: "logout" })}\n\n`;
+            console.log(`📤 Sending SSE data: ${eventData}`);
+            client.write(eventData);
+            client.flushHeaders?.(); // Ensures immediate send
+            client.end(); // Close connection after sending (for testing)
+        });
+    }
+}
+
+
 
 module.exports = {
     registerUser,
     loginUser,
     validateUserSession,
-    logoutUser
+    logoutUser,
+    emergencyLockout,
+    manageSSEConnection
 }

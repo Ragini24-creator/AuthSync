@@ -1,5 +1,8 @@
 
 import QRCode from "./QRcode"
+import { socket } from './loginform.js'
+
+
 
 export default function UserProfile(props) {
     const handleClick = async () => {
@@ -11,10 +14,21 @@ export default function UserProfile(props) {
         const logoutResponse = await response.json();
         console.log(logoutResponse)
         if (logoutResponse.status === 'Success') {
-            props.onSuccessfulLogout(false)
+            props.onSuccessfulLogout(true)
+
+
         }
     }
+    const userId = props.data.userData.userName
+    const handleEmergencyLockout = async () => {
+        await fetch("/authSync/emergencyLockout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+        });
 
+
+    };
 
     return (
         <div className="userprofile-container">
@@ -34,7 +48,7 @@ export default function UserProfile(props) {
                 <div className="emergency-lockout">
                     <h3>Emergency Lockout</h3>
                     <p>Use this option to immediately logout from all devices.This is useful if you suspect unauthorized access to account.</p>
-                    <button className="btn btn-emergency-lockout">Emergency Lockout </button>
+                    <button className="btn btn-emergency-lockout" onClick={handleEmergencyLockout}>Emergency Lockout </button>
                 </div>
                 <div className="generate-QR">
                     <h3 className="qr-title">Your QR Code </h3>

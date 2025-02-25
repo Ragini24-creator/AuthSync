@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import QRScanner from "./QRScanner";
+import SSE from "./SSE";
+
+
+
 
 const ScanPage = (props) => {
     const [qrResult, setQrResult] = useState(null);
+
 
     const handleScan = async (data) => {
         setQrResult(data);
@@ -16,7 +21,11 @@ const ScanPage = (props) => {
 
         const parsedData = await response.json();
         props.onSuccessfulLogin(true, parsedData);
-    };
+        SSE(parsedData.userData.userName);
+    }
+
+
+
 
     return (
         <div>

@@ -83,7 +83,7 @@ const validateQR = async (req, res) => {
         }
 
         const deviceID = uuid.v4();
-        await Users.findOneAndUpdate({ unique }, { $push: { activedevices: deviceID } })
+        await Users.findOneAndUpdate({ unique }, { $push: { activeDevices: deviceID } })
         await Devices.create({
             userid: unique, deviceid: deviceID, status: "active"
         })

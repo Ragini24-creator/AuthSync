@@ -56,6 +56,28 @@ export default function UserProfile(props) {
                     {/* <button className="btn btn-generate-QR">Generate QR</button> */}
                     {props.data.qrUrl && <QRCode qrUrl={props.data.qrUrl} />}
                 </div>
+                <div className="remote-device-logout">
+                    <h3>Remote Device Logout</h3>
+                    <p>Use this to log out from specific devices in real time.</p>
+
+                    {/* {activeDevices && Object.keys(activeDevices).length > 0 ? (
+                        Object.keys(activeDevices).map((deviceId) => (
+                            <div key={deviceId} className="device-item">
+                                <span className={`device-id ${deviceId === currentDeviceId ? "current-device" : ""}`}>
+                                    {deviceId === currentDeviceId ? `${deviceId} (This Device)` : deviceId}
+                                </span>
+                                {deviceId !== currentDeviceId && (
+                                    <button className="btn btn-device-logout" onClick={() => handleLogoutDevice(deviceId)}>
+                                        Logout 🔒
+                                    </button>
+                                )}
+                            </div>
+                        ))
+                    ) : (
+                        <p>No active devices found.</p>
+                    )} */}
+                </div>
+
             </div>
         </div>
     )

@@ -1,3 +1,5 @@
+const useragent = require('user-agent')
+const Session = require("../datastore/models/sessionSchema.js");
 const Users = require("../datastore/models/userSchema.js");
 const Devices = require("../datastore/models/deviceSchema.js")
 const { v4: uuidv4 } = require('uuid')
@@ -12,10 +14,11 @@ let clients = {};
 const registerUser = async (req, res) => {
 
     try {
-        const { email, password } = req.body;
+        const { email, password, deviceId } = req.body;
         const hashedPassword = await passwordHashing(password);
         const unique = uuidv4();
-        const deviceId = uuidv4();
+        // const deviceId = uuidv4();
+
         const user = await Users.findOne({ email: email });
         const device = await Devices.findOne({ deviceId })
         if (!user) {
@@ -52,8 +55,8 @@ const registerUser = async (req, res) => {
 
 // login endpoint
 const loginUser = async (req, res) => {
-    const { email, password } = req.body;
-
+    const { email, password, deviceId } = req.body;
+    console.log("from user controller line 59 fingerprint is : ", deviceId)
     //  check it in database
     const user = await Users.findOne({ email: email });
     console.log(user)
@@ -63,12 +66,11 @@ const loginUser = async (req, res) => {
         )
     }
 
+    // const agent = useragent.parse(req.headers["user-agent"]);
+    // const deviceInfo = `${agent.os} - ${agent.browser}`;
+    // const ipAddress = req.ip;
 
 
-
-    // find the device and update its "status to active"
-    const deviceId = user.activeDevices[0];
-    await Devices.findOneAndUpdate({ deviceid: deviceId }, { $set: { status: "active" } });
 
 
     const storedHashedPassword = user.password
@@ -76,10 +78,30 @@ const loginUser = async (req, res) => {
     //  convert password to hash and verify its existence in database
     const isPasswordValid = await comparePassword(password, storedHashedPassword);
     if (isPasswordValid) {
-        const ssoToken = (generateJWT(user.unique, user.activeDevices[0]))
+        const ssoToken = (generateJWT(user.unique, deviceId))   //user.activeDevices[0]
         console.log(ssoToken)
 
         setCookie(res, "authToken", ssoToken);
+
+        if (!user.activeDevices.includes(deviceId)) {
+            await Users.findOneAndUpdate(
+                { unique: user.unique },
+                { $push: { activeDevices: deviceId } },
+            );
+        }
+
+        // find the device and update its "status to active"
+        //const deviceId = user.activeDevices[0];
+        await Devices.findOneAndUpdate(
+            { userid: user.unique, deviceid: deviceId },
+            { $set: { status: "active" } },
+            { new: true, upsert: true } // optional, but recommended
+        );
+
+
+
+
+
 
         const qrUrl = await getQR(ssoToken)
 
@@ -103,20 +125,22 @@ const loginUser = async (req, res) => {
 
 const validateUserSession = async (req, res) => {
     // const ssoToken = req.headers['cookie']?.split('=')[1];
-    console.log(req.headers['cookie'])
-    let ssoToken = undefined;
+    console.log('from validateUserSession function logging cookie: ',)
+    // let ssoToken = undefined;
 
-    if (req.headers['cookie']?.split('=')[0] === 'abuse_interstitial' && req.headers['cookie']?.split('=').length === 2) {
-        return res.status(400)
-    }
+    let cookieElements = req.headers['cookie'].split('=');
+    let ssoToken = cookieElements[2];
+    // if (req.headers['cookie']?.split('=')[0] === 'abuse_interstitial' && req.headers['cookie']?.split('=').length === 2) {
+    //     return res.status(400)
+    // }
 
-    if (req.headers['cookie']?.split('=')[1] === 'authToken') {
-        ssoToken = req.headers['cookie']?.split('=')[1] === 'authToken'
-    }
+    // if (req.headers['cookie']?.split('=')[1] === 'authToken') {
+    //     ssoToken = req.headers['cookie']?.split('=')[1] === 'authToken'
+    // }
 
-    else if (req.headers['cookie']?.split(';')[1].split('=')[0] === 'authToken') {
-        ssoToken = req.headers['cookie']?.split(';')[1].split('=')[1];
-    }
+    // else if (req.headers['cookie']?.split(';')[1].split('=')[0] === 'authToken') {
+    //     ssoToken = req.headers['cookie']?.split(';')[1].split('=')[1];
+    // }
 
     if (!ssoToken) {
         return res.status(401).send({ status: "Failed" })
@@ -196,7 +220,7 @@ const logoutUser = async (req, res) => {
 
                 await Users.findOneAndUpdate(
                     { unique },
-                    { $pull: { activedevices: deviceId } },
+                    { $pull: { activeDevices: deviceId } },
                 );
 
                 await Devices.updateOne(
@@ -243,7 +267,7 @@ const emergencyLockout = async (req, res) => {
                 const { unique, deviceId } = decoded
 
                 const user = await Users.findOne({ unique: unique });
-                if (!user || user.primaryDevice !== deviceId) {
+                if (!user || user.primaryDevice != deviceId) {
                     return res.status(403).json({ message: "Unauthorized to trigger lockout" });
                 }
 
@@ -252,8 +276,14 @@ const emergencyLockout = async (req, res) => {
                     { $set: { status: "signedout" } }
                 );
 
+                await Users.findOneAndUpdate(
+                    { unique },
+                    { $set: { activeDevices: [user.primaryDevice] } }
+                );
+
                 const userId = user.email.split('@')[0];
-                sendEventToUser(userId)
+                sendEventToUser(userId, user.primaryDevice)
+                // sendEventToUser(userId, user.primaryDevice)
 
                 return res.json({ message: "Emergency lockout successful" });
 
@@ -272,6 +302,7 @@ const emergencyLockout = async (req, res) => {
 
 
 const manageSSEConnection = (req, res) => {
+    console.log('Inside manageSSEConnection, New Request Received ', req.params.userId)
     const userId = req.params.userId;
     console.log('SSE request received', req.params.userId)
     res.setHeader("Content-Type", "text/event-stream");
@@ -290,6 +321,49 @@ const manageSSEConnection = (req, res) => {
         console.log(`❌ User ${userId} disconnected from SSE`);
     });
 }
+
+// const manageSSEConnection = (req, res) => {
+//     const userId = req.params.userId;
+//     const deviceId = req.params.deviceId;
+
+//     console.log('📥 SSE request received from:', userId, deviceId);
+
+//     res.setHeader("Content-Type", "text/event-stream");
+//     res.setHeader("Cache-Control", "no-cache");
+//     res.setHeader("Connection", "keep-alive");
+
+//     // Initialize user entry if not present
+//     if (!clients[userId]) {
+//         clients[userId] = {};
+//     }
+
+//     // Initialize device entry if not present
+//     if (!clients[userId][deviceId]) {
+//         clients[userId][deviceId] = [];
+//     }
+
+//     // Save the connection (res)
+//     clients[userId][deviceId].push(res);
+
+//     console.log(`📡 User ${userId} (Device ${deviceId}) connected for SSE`);
+
+//     // Remove client on disconnect
+//     req.on("close", () => {
+//         clients[userId][deviceId] = clients[userId][deviceId].filter(client => client !== res);
+//         console.log(`❌ User ${userId} (Device ${deviceId}) disconnected from SSE`);
+
+//         // Clean up empty arrays
+//         if (clients[userId][deviceId].length === 0) {
+//             delete clients[userId][deviceId];
+//         }
+
+//         // Clean up empty users
+//         if (Object.keys(clients[userId]).length === 0) {
+//             delete clients[userId];
+//         }
+//     });
+// };
+
 
 // Function to send event to all devices of a user
 // function sendEventToUser(userId) {
@@ -312,8 +386,9 @@ const manageSSEConnection = (req, res) => {
 //     }
 // }
 
-function sendEventToUser(userId) {
+function sendEventToUser(userId, primaryDeviceId) {
     if (clients[userId]) {
+        console.log('from sendEventToUser function, clients object: ', clients[userId])
         clients[userId].forEach(client => {
             const eventData = `data: ${JSON.stringify({ action: "logout" })}\n\n`;
             console.log(`📤 Sending SSE data: ${eventData}`);
@@ -323,6 +398,92 @@ function sendEventToUser(userId) {
         });
     }
 }
+// function sendEventToUser(userId, primaryDeviceId) {
+//     if (clients[userId]) {
+//         Object.entries(clients[userId]).forEach(([deviceId, clientList]) => {
+//             if (deviceId !== primaryDeviceId) {
+//                 clientList.forEach(client => {
+//                     const eventData = `data: ${JSON.stringify({ action: "logout" })}\n\n`;
+//                     console.log(`📤 Sending SSE logout to User ${userId}, Device ${deviceId}: ${eventData}`);
+//                     client.write(eventData);
+//                     client.flushHeaders?.(); // Optional, ensures data is sent immediately
+//                     client.end(); // Optional: close after sending
+//                 });
+//             }
+//         });
+//     }
+// }
+
+
+
+// const getSessions = async (req, res) => {
+//     const userId = req.user.userId;
+//     const sessions = await Session.find({ userId });
+
+//     res.json(
+//         sessions.map((s) => ({
+//             id: s._id,
+//             deviceInfo: s.deviceInfo,
+//             ipAddress: s.ipAddress,
+//             loginTime: s.createdAt,
+//         }))
+//     );
+// };
+
+// FOR LOGOUT FROM SPECIFIC DEVICE
+
+const deviceSSEClients = {};
+
+const manageDeviceSSE = (req, res) => {
+    const { userId, deviceId } = req.params;
+    console.log(`🔌 New device SSE connection: user=${userId}, device=${deviceId}`);
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    if (!deviceSSEClients[userId]) {
+        deviceSSEClients[userId] = {};
+    }
+
+    // Save the device-specific connection
+    deviceSSEClients[userId][deviceId] = res;
+
+    // Handle disconnection
+    req.on("close", () => {
+        console.log(`❌ Device SSE disconnected: user=${userId}, device=${deviceId}`);
+        delete deviceSSEClients[userId][deviceId];
+
+        // Clean up empty user entry
+        if (Object.keys(deviceSSEClients[userId]).length === 0) {
+            delete deviceSSEClients[userId];
+        }
+    });
+};
+
+
+const sendEventToSpecificDevice = (userId, deviceId, data = { action: "logout" }) => {
+    const client = deviceSSEClients[userId]?.[deviceId];
+    if (client) {
+        const payload = `data: ${JSON.stringify(data)}\n\n`;
+        console.log(`📤 Sending to user=${userId}, device=${deviceId} ➜`, payload);
+        client.write(payload);
+    } else {
+        console.log(`⚠️ No client found for user=${userId}, device=${deviceId}`);
+    }
+};
+
+
+const broadcastToAllUserDevices = (userId, data = { action: "logout" }) => {
+    const userDevices = deviceSSEClients[userId];
+    if (userDevices) {
+        const payload = `data: ${JSON.stringify(data)}\n\n`;
+        Object.entries(userDevices).forEach(([deviceId, res]) => {
+            console.log(`📡 Broadcasting to ${userId}:${deviceId}`);
+            res.write(payload);
+        });
+    }
+};
 
 
 
@@ -332,5 +493,9 @@ module.exports = {
     validateUserSession,
     logoutUser,
     emergencyLockout,
-    manageSSEConnection
+    manageSSEConnection,
+    manageDeviceSSE,
+    broadcastToAllUserDevices,
+    sendEventToSpecificDevice
+
 }

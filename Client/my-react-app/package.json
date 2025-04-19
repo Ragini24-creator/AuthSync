@@ -4,7 +4,7 @@
   "private": true,
   "proxy": "http://localhost:9000",
   "dependencies": {
-    "@fingerprintjs/fingerprintjs": "^4.6.0",
+    "@fingerprintjs/fingerprintjs": "^4.6.2",
     "cra-template": "1.2.0",
     "html5-qrcode": "^2.3.8",
     "ngrok": "^5.0.0-beta.2",

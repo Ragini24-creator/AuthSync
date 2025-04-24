@@ -77,6 +77,7 @@ const loginUser = async (req, res) => {
 
     //  convert password to hash and verify its existence in database
     const isPasswordValid = await comparePassword(password, storedHashedPassword);
+    let updatedUser;
     if (isPasswordValid) {
         const ssoToken = (generateJWT(user.unique, deviceId))   //user.activeDevices[0]
         console.log(ssoToken)
@@ -84,9 +85,10 @@ const loginUser = async (req, res) => {
         setCookie(res, "authToken", ssoToken);
 
         if (!user.activeDevices.includes(deviceId)) {
-            await Users.findOneAndUpdate(
+            updatedUser = await Users.findOneAndUpdate(
                 { unique: user.unique },
                 { $push: { activeDevices: deviceId } },
+                { new: true },
             );
         }
 
@@ -113,7 +115,8 @@ const loginUser = async (req, res) => {
             userData: {
                 userName: email.split('@')[0],
                 email,
-                loggedInDevices: user.activeDevices.length
+                loggedInDevices: updatedUser ? updatedUser.activeDevices.length : user.activeDevices.length,
+                activeDevices: updatedUser ? updatedUser.activeDevices : user.activeDevices,
             }
         })
     } else {
@@ -125,6 +128,7 @@ const loginUser = async (req, res) => {
 
 const validateUserSession = async (req, res) => {
     // const ssoToken = req.headers['cookie']?.split('=')[1];
+    if (!req.headers['cookie']) return res.status(401);
     console.log('from validateUserSession function logging cookie: ',)
     // let ssoToken = undefined;
 
@@ -183,7 +187,8 @@ const validateUserSession = async (req, res) => {
                 userData: {
                     userName: user.email.split('@')[0],
                     email: user.email,
-                    loggedInDevices: user.activeDevices.length
+                    loggedInDevices: user.activeDevices.length,
+                    activeDevices: user.activeDevices
                 }
             })
         }

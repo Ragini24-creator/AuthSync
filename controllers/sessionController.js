@@ -124,7 +124,8 @@ const validateQR = async (req, res) => {
             userData: {
                 userName: email.split('@')[0],
                 email,
-                loggedInDevices: updatedUser.activeDevices.length
+                loggedInDevices: updatedUser ? updatedUser.activeDevices.length : user.activeDevices.length,
+                activeDevices: updatedUser ? updatedUser.activeDevices : user.activeDevices,
             }
         })
     } catch (error) {

@@ -199,12 +199,17 @@ margin-bottom:10px;
 
   .userprofile-container{
     width:100vw;
+    margin-top: 30rem;
   }
 }
 
 /* remote device logout  */
 
 .remote-device-logout {
+  /* display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  justify-content: flex-start; */
   margin-top: 2rem;
 }
 
@@ -222,7 +227,10 @@ margin-bottom:10px;
 .device-id {
   font-family: monospace;
   font-size: 0.95rem;
-  color: #333;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.42);
+  border-radius: 3rem;
+  padding:0.6rem 1.2rem;
 }
 
 .current-device {
@@ -241,4 +249,16 @@ margin-bottom:10px;
 
 .btn-device-logout:hover {
   background-color: #bb2d3b;
+}
+
+.device-names-wrapper{
+  display: grid;
+  grid-template-columns: 1fr;
+  /* margin-top: 0;  */
+  gap:1rem;
+  padding: 0rem 1rem; 
+}
+
+.device-name-title{
+  margin-bottom: 2rem;
 }

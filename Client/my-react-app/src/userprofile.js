@@ -57,9 +57,19 @@ export default function UserProfile(props) {
                     {props.data.qrUrl && <QRCode qrUrl={props.data.qrUrl} />}
                 </div>
                 <div className="remote-device-logout">
-                    <h3>Remote Device Logout</h3>
-                    <p>Use this to log out from specific devices in real time.</p>
+                    <div className="device-names-wrapper">
+                        <h3 className="device-name-title">Currently Logged Devices</h3>
+                        {
+                            props.data.userData.activeDevices ?
+                                props.data.userData.activeDevices.map((device, index) => {
+                                    return (
+                                        <p className="device-id">{`${device.slice(0, 6)}**********`}</p>
+                                    )
+                                })
+                                : <p>No devices to show.</p>
 
+                        }
+                    </div>
                     {/* {activeDevices && Object.keys(activeDevices).length > 0 ? (
                         Object.keys(activeDevices).map((deviceId) => (
                             <div key={deviceId} className="device-item">

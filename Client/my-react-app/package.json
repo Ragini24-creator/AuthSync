@@ -4,12 +4,14 @@
   "private": true,
   "proxy": "http://localhost:9000",
   "dependencies": {
+    "@fingerprintjs/fingerprintjs": "^4.6.2",
     "cra-template": "1.2.0",
     "html5-qrcode": "^2.3.8",
     "ngrok": "^5.0.0-beta.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "socket.io-client": "^4.8.1"
   },
   "scripts": {
     "start": "react-scripts start",

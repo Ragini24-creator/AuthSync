@@ -199,6 +199,66 @@ margin-bottom:10px;
 
   .userprofile-container{
     width:100vw;
+    margin-top: 30rem;
   }
 }
 
+/* remote device logout  */
+
+.remote-device-logout {
+  /* display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  justify-content: flex-start; */
+  margin-top: 2rem;
+}
+
+.device-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f6f6f6;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin: 10px 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.device-id {
+  font-family: monospace;
+  font-size: 0.95rem;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.42);
+  border-radius: 3rem;
+  padding:0.6rem 1.2rem;
+}
+
+.current-device {
+  font-weight: bold;
+  color: #198754; /* bootstrap green for highlight */
+}
+
+.btn-device-logout {
+  background-color: #dc3545; /* bootstrap danger red */
+  color: #fff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-device-logout:hover {
+  background-color: #bb2d3b;
+}
+
+.device-names-wrapper{
+  display: grid;
+  grid-template-columns: 1fr;
+  /* margin-top: 0;  */
+  gap:1rem;
+  padding: 0rem 1rem; 
+}
+
+.device-name-title{
+  margin-bottom: 2rem;
+}

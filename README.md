@@ -30,9 +30,10 @@ This system simulates a modern multi-device authentication experience, making it
 
 ## 🔐 Session Flow: Multi-Device Login
 
-The diagram below explains how session transfer and login work across multiple devices.
+The diagram below explains how session transfer and login flow work across multiple devices in a simplified way.
 
-![Session Flowchart](./assets/AuthSync-flowchart.png)
+<img src="./assets/AuthSync-flowchart.png" width="400" style="margin-left: 10px;" />
+
 
 
 ## 📸 UI Screenshots
@@ -41,6 +42,11 @@ The diagram below explains how session transfer and login work across multiple d
 <h3>🔐 Login UI</h3>
 <img src="./assets/AuthSync-Login.png" width="400" style="margin-left: 10px;" />
 
+<h3>🔐 AuthSync Dashboard</h3>
+<img src="./assets/AuthSync-Dashboard.png" width="400" style="margin-left: 10px;" />
+
+<h3>🔐 User account specifc QR for session Transfer across devices</h3>
+<img src="./assets/AuthSync-QR.png" width="400" style="margin-left: 10px;" />
 
 <h3>🛑 Emergency Lockout Interface</h3>
 <img src="./assets/AuthSync-EmergencyLockout.png" width="300" style="margin-left: 10px;" />

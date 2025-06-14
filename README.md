@@ -28,6 +28,13 @@ This project goes beyond traditional JWT-based login flows by enabling:
 This system simulates a modern multi-device authentication experience, making it an ideal backend concept project for demonstrating real-world, security-first thinking.
 
 
+## 🔐 Session Flow: Multi-Device Login
+
+The diagram below explains how session transfer and login work across multiple devices.
+
+![Session Flowchart](./assets/AuthSync-flowchart.png)
+
+
 ## Feedback and Suggestions
 This project is a part of my learning journey, and I aim to implement real-world solutions for secure session management. If you have any suggestions, feedback, or ideas for improvement, I would greatly appreciate hearing them. Constructive criticism is always welcome and will help me refine and enhance the project further
 

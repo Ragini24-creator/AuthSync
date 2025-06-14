@@ -73,27 +73,40 @@ const getQR = async (ssoToken) => {
 const validateQR = async (req, res) => {
     try {
         console.log("request hit after QR scanning", req.body)
-        const { qrData: unique } = req.body;  // Access token and user from the body
+        const { qrData: unique, deviceId } = req.body;  // Access token and user from the body
 
-
+        console.log("Logging Device fingerprint from sessionController line 78: ", deviceId);
         // Step 1: Check if user exists
         const user = await Users.findOne({ unique }); // Your DB query to check if token exists
         if (!user) {
             return res.status(400).send('Invalid session token');
         }
 
-        const deviceID = uuid.v4();
-        await Users.findOneAndUpdate({ unique }, { $push: { activedevices: deviceID } })
-        await Devices.create({
-            userid: unique, deviceid: deviceID, status: "active"
-        })
+        // const deviceID = uuid.v4();
+        let updatedUser;
+        if (!user.activeDevices.includes(deviceId)) {
+            updatedUser = await Users.findOneAndUpdate(
+                { unique: user.unique },
+                { $push: { activeDevices: deviceId } },
+                { new: true }
+            );
+        }
+
+        const updatedDevice = await Devices.findOneAndUpdate(
+            { userid: user.unique, deviceid: deviceId },
+            { $set: { status: "active" } },
+            { new: true, upsert: true } // optional, but recommended
+        );
+
+        console.log("✅ Device record upserted:", updatedDevice);
+
         // Step 2: Check if the session has expired
         //const currentTime = new Date(); // Get current time
 
         // if (session.expires_at <= currentTime) {
         //     return res.status(400).send('Session expired');
         // }
-        const ssoToken = generateJWT(unique, deviceID)
+        const ssoToken = generateJWT(unique, deviceId)
 
         setCookie(res, "authToken", ssoToken)
 
@@ -101,14 +114,19 @@ const validateQR = async (req, res) => {
 
         const qrUrl = await getQR(ssoToken)
 
+        const email = user.email;
+
         res.status(200).send({
-            status: "success",
+            status: "Success",
             message: "Login successful, cookie has been set",
+            email,
+            qrUrl,
             userData: {
-                userName: user.email.split('@')[0],
-                email: user.email
-            },
-            qrUrl
+                userName: email.split('@')[0],
+                email,
+                loggedInDevices: updatedUser ? updatedUser.activeDevices.length : user.activeDevices.length,
+                activeDevices: updatedUser ? updatedUser.activeDevices : user.activeDevices,
+            }
         })
     } catch (error) {
         console.log("Error occured in validate QR function: ", error.message)

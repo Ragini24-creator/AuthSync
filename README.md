@@ -35,6 +35,16 @@ The diagram below explains how session transfer and login work across multiple d
 ![Session Flowchart](./assets/AuthSync-flowchart.png)
 
 
+## 📸 UI Screenshots
+
+### 🔐 Login Interface
+![Login UI](./assets/AuthSync-Login.png)
+
+### 🛑 Emergency Lockout Interface
+![Lockout UI](./assets/lockout-ui.png)
+
+
+
 ## Feedback and Suggestions
 This project is a part of my learning journey, and I aim to implement real-world solutions for secure session management. If you have any suggestions, feedback, or ideas for improvement, I would greatly appreciate hearing them. Constructive criticism is always welcome and will help me refine and enhance the project further
 

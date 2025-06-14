@@ -37,13 +37,14 @@ The diagram below explains how session transfer and login work across multiple d
 
 ## 📸 UI Screenshots
 
-### 🔐 Login Interface
+
 <h3>🔐 Login UI</h3>
-<img src="./assets/AuthSync-Login.png" width="300" style="margin-left: 10px;" />
+<img src="./assets/AuthSync-Login.png" width="400" style="margin-left: 10px;" />
 
 
-### 🛑 Emergency Lockout Interface
-![Lockout UI](./assets/lockout-ui.png)
+<h3>🛑 Emergency Lockout Interface</h3>
+<img src="./assets/AuthSync-EmergencyLockout.png" width="300" style="margin-left: 10px;" />
+
 
 
 

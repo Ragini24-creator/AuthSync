@@ -54,7 +54,7 @@ The diagram below explains how QR  and Emergency Lockout works across multiple d
 <img src="./assets/AuthSync-EmergencyLockout.png" width="300" style="margin-left: 10px;" />
 
 
-
+##(P.S. I’m aware the folder structure needs cleanup — just focused on getting core features to work first. Will keep improving it!)
 
 ## Feedback and Suggestions
 This project is a part of my learning journey, and I aim to implement real-world solutions for secure session management. If you have any suggestions, feedback, or ideas for improvement, I would greatly appreciate hearing them. Constructive criticism is always welcome and will help me refine and enhance the project further

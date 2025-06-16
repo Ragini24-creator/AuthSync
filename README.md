@@ -35,7 +35,7 @@ The diagram below explains how session transfer and login flow work across multi
 <img src="./assets/AuthSync-flowchart.png" width="400" style="margin-left: 10px;" />
 
 The diagram below explains how QR  and Emergency Lockout works across multiple devices in a simplified way.
-<img src="./assets/AuthSync-features-flowchart.png" width="400" style="margin-left: 10px;" />
+<img src="./assets/AuthSync-features.png" width="400" style="margin-left: 10px;" />
 
 
 ## 📸 UI Screenshots

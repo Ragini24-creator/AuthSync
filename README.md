@@ -61,6 +61,19 @@ The diagram below explains how QR  and Emergency Lockout works across multiple d
 
 ##(P.S. I’m aware the folder structure needs cleanup — just focused on getting core features to work first. Will keep improving it!)
 
+## License
+
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Credits
+
+📌 This project was created by [Ragini Kishor]((https://www.linkedin.com/in/ragini-kaushalkishor-751518302).  
+Feel free to use or fork it, but please give proper credit.  
+If you found this project helpful, consider giving it a ⭐ on GitHub!
+
+
 ## Feedback and Suggestions
 This project is a part of my learning journey, and I aim to implement real-world solutions for secure session management. If you have any suggestions, feedback, or ideas for improvement, I would greatly appreciate hearing them. Constructive criticism is always welcome and will help me refine and enhance the project further
 

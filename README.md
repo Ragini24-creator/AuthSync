@@ -1,3 +1,8 @@
+# AuthSync – Passwordless, Cross-Device Authentication System
+
+📖 Read the full story behind this project: [AuthSync on Dev.to](https://dev.to/ragini24creator/authsync-a-passwordless-cross-device-authentication-system-inspired-by-whatsapp-web-fido2-5gi2)
+
+
 ## 📌 Overview
 
 **AuthSync** is a backend-focused authentication system that supports **secure session transfer between devices**, built with the idea of enhancing user experience across platforms — inspired by passwordless concepts like **FIDO2**.

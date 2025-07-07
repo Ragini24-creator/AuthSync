@@ -1,5 +1,6 @@
 # AuthSync – Passwordless, Cross-Device Authentication System
 
+📖 You can learn about something important I learned while working on this project and real-time system [here](https://medium.com/@raginikishor5603/why-i-used-server-sent-events-instead-of-raw-websockets-and-what-i-learned-8faa8801d6e4)
 📖 Read the full story behind this project: [AuthSync on Dev.to](https://dev.to/ragini24creator/authsync-a-passwordless-cross-device-authentication-system-inspired-by-whatsapp-web-fido2-5gi2)
 
 

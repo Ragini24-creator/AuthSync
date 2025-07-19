@@ -21,7 +21,7 @@ const generateQR = async function (unique) {
 
         // const jsonData = JSON.stringify(data);
 
-        // const url = `http:// 192.168.0.166:9000/authSync/validateQR?token=${sessionToken}`;
+
         const qrCodeDataUrl = await qrcode.toDataURL(unique, options);
 
         // Now you can return qrCodeDataUrl to another function

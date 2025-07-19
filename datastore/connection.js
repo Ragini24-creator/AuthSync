@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const PASSWORD = encodeURIComponent(process.env.DATABASE_PASSWORD);
-const DB_URL = `mongodb+srv://Ragini:${PASSWORD}@cluster0.om43n.mongodb.net/AUTHSYNC?retryWrites=true&w=majority&appName=Cluster0`;
-
+const DB_URL = process.env.DATABASE_URL.replace('<PASSWORD>', PASSWORD)
 
 const connectDB = async () => {
     try {

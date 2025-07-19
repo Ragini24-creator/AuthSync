@@ -1,3 +1,10 @@
+# AuthSync – Passwordless, Cross-Device Authentication System
+
+📖 You can learn about something important I learned while working on this project and real-time system [here](https://medium.com/@raginikishor5603/why-i-used-server-sent-events-instead-of-raw-websockets-and-what-i-learned-8faa8801d6e4)
+
+📖 Read the full story behind this project: [AuthSync on Dev.to](https://dev.to/ragini24creator/authsync-a-passwordless-cross-device-authentication-system-inspired-by-whatsapp-web-fido2-5gi2)
+
+
 ## 📌 Overview
 
 **AuthSync** is a backend-focused authentication system that supports **secure session transfer between devices**, built with the idea of enhancing user experience across platforms — inspired by passwordless concepts like **FIDO2**.
@@ -54,6 +61,19 @@ The diagram below explains how QR  and Emergency Lockout works across multiple d
 <img src="./assets/AuthSync-EmergencyLockout.png" width="300" style="margin-left: 10px;" />
 
 
+##(P.S. I’m aware the folder structure needs cleanup — just focused on getting core features to work first. Will keep improving it!)
+
+## License
+
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Credits
+
+📌 This project was created by [Ragini Kishor]((https://www.linkedin.com/in/ragini-kaushalkishor-751518302).  
+Feel free to use or fork it, but please give proper credit.  
+If you found this project helpful, consider giving it a ⭐ on GitHub!
 
 
 ## Feedback and Suggestions
